@@ -1,0 +1,64 @@
+Vagrant.configure("2") do |config|
+
+    # Box Settings
+    config.vm.box = "archlinux/archlinux"
+
+    # Box name
+    config.vm.define "vmslower"
+
+    # Network Settings
+    config.vm.hostname = "vmslower"
+
+    # Folder Settings
+    config.vm.synced_folder "./shared", "/home/vagrant/shared", create: true
+    config.vm.synced_folder "../scripts", "/home/vagrant/scripts", create: true
+
+    # Provider Settings
+    config.vm.provider "virtualbox" do |vb|
+        # Set a name for the machine displayed in VirtualBox
+        vb.name = "vmslower"
+        # Customize the amount of memory on the VM
+        vb.memory = "2048"
+        # Customize network settings on the VM
+        # vb.customize ["modifyvm", :id, "--nictype1", "virtio"]
+        vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
+        vb.customize ["modifyvm", :id, "--natdnsproxy1", "on"]
+    end
+
+    # Provisions
+
+    # Install system packages
+    config.vm.provision "root-setup", type: "shell", privileged: true, run: "once", inline: <<-SHELL
+        # Update system
+        echo "Updating system packages..."
+        pacman -Syu --noconfirm --quiet
+
+        # Update archlinux keyring
+        echo "Updating archlinux keyring..."
+        pacman -S --noconfirm --quiet --needed archlinux-keyring
+
+        # Install basic tools
+        echo "Installing basic tools..."
+        pacman -S --noconfirm nano
+
+        # Install performance observation tools
+        echo "Installing performance observation tools..."
+        pacman -S --noconfirm htop sysstat 
+
+        # Install sysbench
+        echo "Installing sysbench..."
+        pacman -S --noconfirm sysbench
+
+        # Install python and pip modules
+        echo "Installing python..."
+        pacman -S --noconfirm python python-pip
+
+        # Install hdparm and disable write-cache
+        echo "Installing hdparm..."
+        pacman -S --noconfirm hdparm
+
+        echo "Disabling write-cache..."
+        hdparm -W 0 /dev/sda
+
+    SHELL
+end
